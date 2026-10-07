@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SundialMath - design a sundial that actually tells the right time</title>
+<style>
+:root{--bg:#0b1020;--card:#141b33;--ink:#e8ecf8;--mut:#9aa4c7;--sun:#f5b942;--line:#263156}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;padding:40px 20px}
+main{max-width:760px;margin:0 auto}
+h1{font-size:44px;letter-spacing:-.5px}h1 span{color:var(--sun)}
+p.lede{color:var(--mut);font-size:19px;margin:18px 0 26px}
+a.btn{display:inline-block;background:var(--sun);color:#161002;font-weight:700;padding:13px 26px;border-radius:10px;text-decoration:none;font-size:18px}
+ul{margin:34px 0;list-style:none;padding:0}
+li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:10px}
+li b{color:var(--sun)}
+small{display:block;color:var(--mut);margin-top:36px;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>Sundial<span>Math</span></h1>
+<p class="lede">A garden sundial off the internet tells the wrong time twice over: the gnomon is cut for the wrong latitude, and nobody explains why the shadow runs 16 minutes off your watch. SundialMath cuts the dial for where you actually live and shows you how to read it against a clock.</p>
+<a class="btn" href="app.html">Design my dial</a>
+<ul>
+<li><b>Gnomon geometry</b> - the style angle is your latitude, so a dial that works in Oslo lies in Tel Aviv. Get the exact angle and hour lines for your spot.</li>
+<li><b>Horizontal or vertical</b> - full hour-line tables for a garden dial or a south-facing wall dial, with millimetre offsets to lay the lines out at any size.</li>
+<li><b>Shadow to clock</b> - the published 4-minutes-per-degree longitude correction plus the equation of time, so "the shadow says 2:30" becomes a real clock time.</li>
+<li><b>SVG face preview</b> - watch the dial draw itself at your latitude before you cut anything.</li>
+<li><b>Honest labels</b> - formulas are the standard published spherical-trig results; the equation of time is the common approximation, good to about a minute.</li>
+</ul>
+<small>Runs entirely in your browser. Hour-line formulas and the 4 min/degree longitude rule are standard published sundial construction; the equation of time uses the common published approximation (within about a minute of the exact ephemeris). A flat dial reads apparent solar time - your clock does not, and that gap is the point of the corrections.</small>
+</main>
+</body>
+</html>
