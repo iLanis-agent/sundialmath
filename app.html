@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SundialMath - dial designer</title>
+<style>
+:root{--bg:#0b1020;--card:#141b33;--ink:#e8ecf8;--mut:#9aa4c7;--sun:#f5b942;--line:#263156;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:26px 14px 60px}
+main{max-width:860px;margin:0 auto}
+a.back{color:var(--mut);text-decoration:none;font-size:14px}
+h1{font-size:30px;margin:6px 0 2px}h1 span{color:var(--sun)}
+.sub{color:var(--mut);margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.card h2{font-size:19px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+label{display:block;color:var(--mut);font-size:13px;margin-bottom:4px}
+input,select{width:100%;background:#0d1430;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px 10px;font-size:16px}
+button.ghost{background:#1c2547;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer;margin:10px 6px 0 0}
+button.ghost:hover{border-color:var(--sun)}
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.vc{background:#0d1430;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.vc .k{color:var(--mut);font-size:12px;letter-spacing:1px}
+.vc .n{font-size:24px;font-weight:700;margin:4px 0}
+.vc .h{color:var(--mut);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+td.v{font-weight:700;white-space:nowrap}
+th{color:var(--mut);font-weight:600;font-size:13px}
+.note{color:var(--mut);font-size:13px;margin-top:10px}
+.err{display:none;background:#3a1220;border:1px solid var(--bad);color:#fecaca;border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.tag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;letter-spacing:.5px}
+.tag.ok{background:#14532d;color:#86efac}
+.tag.warn{background:#513b06;color:#fcd34d}
+#dialSvg{width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="index.html">&larr; SundialMath</a>
+<h1>Sundial<span>Math</span></h1>
+<p class="sub">Enter where the dial will live. Everything else follows from the latitude.</p>
+
+<div class="err" id="err"></div>
+
+<div class="card">
+<h2>1. Place and dial</h2>
+<div class="grid">
+<div><label>Latitude (deg, south negative)</label><input id="lat" type="number" step="any" value="32.08"></div>
+<div><label>Longitude (deg, west negative)</label><input id="lon" type="number" step="any" value="34.78"></div>
+<div><label>Clock timezone (UTC offset)</label><input id="tz" type="number" step="any" value="2"></div>
+<div><label>Dial type</label><select id="dtype"><option value="h">Horizontal (garden)</option><option value="v">Vertical, wall facing the equator</option></select></div>
+<div><label>Layout radius (mm)</label><input id="rad" type="number" step="any" value="180"></div>
+</div>
+<div id="presets"></div>
+</div>
+
+<div class="card">
+<h2>2. The gnomon</h2>
+<div class="verdicts" id="gnomon"></div>
+<p class="note">The style (the edge that casts the time-telling shadow) must point at the celestial pole, so its angle above the dial plate equals your latitude. A dial sold with a fixed gnomon only reads true at one latitude.</p>
+</div>
+
+<div class="card">
+<h2>3. Hour lines</h2>
+<table id="lines"><tr><th>Hour (solar)</th><th>Angle from noon line</th><th>Offset at layout radius</th></tr></table>
+<p class="note">Morning lines fall on the west side of the noon line, afternoon on the east (layout reverses in the southern hemisphere). Angles use the published formula for your dial type. Hours within 6 of noon are the reliable reading band on most days.</p>
+</div>
+
+<div class="card">
+<h2>4. Dial face preview</h2>
+<svg id="dialSvg" viewBox="-215 -215 430 430" role="img" aria-label="Sundial face preview"></svg>
+<p class="note" id="svgNote"></p>
+</div>
+
+<div class="card">
+<h2>5. Reading the shadow against a clock</h2>
+<div class="grid">
+<div><label>Date</label><input id="date" type="date"></div>
+<div><label>Shadow reading (hour, 24h)</label><input id="shadow" type="number" step="any" value="14.5"></div>
+</div>
+<div class="verdicts" id="reading" style="margin-top:12px"></div>
+<p class="note">A flat dial reads apparent solar time. Your clock reads mean time on a timezone meridian: the equation of time (common published approximation, within about a minute) plus 4 minutes per degree of longitude separate them. Daylight saving shifts the answer one more hour - add it yourself when your clock is on DST.</p>
+</div>
+
+<p class="note">Model: ideal gnomon with a knife-edge style, level plate, vertical wall exactly facing the equator. Real dials lose a few minutes to plate tilt, thick styles and reading the wrong edge. Hour-line formulas are standard published sundial construction; EoT is the common approximation, good to about a minute.</p>
+</main>
+<script src="engine.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const presets=[
+ {n:'Tel Aviv',lat:32.08,lon:34.78,tz:2},
+ {n:'London',lat:51.5074,lon:-0.1278,tz:0},
+ {n:'New York',lat:40.7128,lon:-74.006,tz:-5},
+ {n:'Sydney (southern)',lat:-33.8688,lon:151.2093,tz:10}];
+presets.forEach(p=>{const b=document.createElement('button');b.className='ghost';b.textContent=p.n;
+ b.onclick=()=>{$('lat').value=p.lat;$('lon').value=p.lon;$('tz').value=p.tz;run();};$('presets').appendChild(b);});
+const fmt=(v,d=2)=>v.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+function vc(k,n,h){return `<div class="vc"><div class="k">${k}</div><div class="n">${n}</div><div class="h">${h||''}</div></div>`}
+function num(id){const v=parseFloat($(id).value);return isFinite(v)?v:NaN;}
+function showErr(m){const e=$('err');e.textContent=m;e.style.display='block';}
+function hideErr(){$('err').style.display='none';}
+function doyFromDate(ds){const d=ds?new Date(ds+'T12:00:00'):new Date();
+ const y=d.getFullYear();const t=Date.UTC(y,d.getMonth(),d.getDate());return Math.round((t-Date.UTC(y,0,1))/864e5)+1;}
+function run(){
+ hideErr();
+ const lat=num('lat'),lon=num('lon'),tz=num('tz'),rad=num('rad'),vert=$('dtype').value==='v';
+ if(!(Math.abs(lat)<=90)||!(Math.abs(lon)<=180)||!(Math.abs(tz)<=14)||!(rad>0)){showErr('Latitude must be within +/-90, longitude within +/-180, timezone within +/-14, radius positive.');return;}
+ const doy=doyFromDate($('date').value);
+ // gnomon
+ const sa=engine.styleAngle(lat);
+ let g=vc('STYLE ANGLE',fmt(sa.angle,2)+'&deg;','cut the gnomon style at exactly your latitude');
+ g+=vc('EQUATOR DEGENERACY',Math.abs(lat)<2?'<span class="tag warn">NEAR EQUATOR</span>':'<span class="tag ok">FINE</span>',
+   Math.abs(lat)<2?(vert?'a vertical equatorial dial keeps clean geometry, but the noon line crowds':'near the equator a horizontal dial squeezes every hour line onto noon - use a vertical wall dial or accept the crowding'):'latitude far enough from the equator for a readable face');
+ g+=vc('HEMISPHERE',lat<0?'SOUTHERN':'NORTHERN',lat<0?'gnomon points at the south celestial pole; hour numbering reverses':'gnomon points at the north celestial pole');
+ $('gnomon').innerHTML=g;
+ // hour lines
+ const fn=vert?engine.verticalHourLine:engine.hourLine;
+ let rows='';
+ for(let h=5;h<=19;h++){
+  const r=fn(lat,h);
+  if(r.skip)continue;
+  const off=engine.lineOffsetMm(r.angle,rad);
+  const hr=h<10?'0'+h:''+h;
+  rows+=`<tr><td>${hr}:00</td><td class="v">${fmt(r.angle,2)}&deg;</td><td>${fmt(off.mm,1)} mm ${r.angle<0?'west':'east'} of noon</td></tr>`;
+ }
+ $('lines').innerHTML='<tr><th>Hour (solar)</th><th>Angle from noon line</th><th>Offset at '+fmt(rad,0)+' mm radius</th></tr>'+rows;
+ // svg
+ drawDial(lat,fn);
+ // reading
+ const sn=engine.solarNoon(lon,tz,doy);
+ const st=engine.shadowToClock(num('shadow'),lon,tz,doy);
+ let rd=vc('EQUATION OF TIME',fmt(sn.eot,1)+' min','how far apparent solar time leads mean time today (published approximation)');
+ rd+=vc('LONGITUDE CORRECTION',fmt(sn.lonCorr,1)+' min','your spot vs the '+fmt(sn.lonCorr>=0?tz*15:tz*15,0)+'&deg; timezone meridian at 4 min/degree');
+ rd+=vc('SOLAR NOON (CLOCK)',sn.text,'when the sun actually crosses your meridian, clock time');
+ rd+=st.error?vc('SHADOW SAYS '+fmt(num('shadow'),2),'&mdash;',st.error):vc('SHADOW SAYS '+fmt(num('shadow'),2),st.text,'the clock time for that reading today, before any daylight saving');
+ $('reading').innerHTML=rd;
+}
+function drawDial(lat,fn){
+ const svg=$('dialSvg');const R=200;
+ let s=`<circle cx="0" cy="0" r="${R}" fill="#0d1430" stroke="#263156" stroke-width="2"/>`;
+ s+=`<line x1="0" y1="${-R}" x2="0" y2="${R}" stroke="#f5b942" stroke-width="2"/>`;
+ for(let h=5;h<=19;h++){
+  const r=fn(lat,h);if(r.skip)continue;
+  const a=r.angle*Math.PI/180;
+  const x=R*Math.sin(a),y=-R*Math.cos(a);
+  s+=`<line x1="0" y1="0" x2="${x}" y2="${y}" stroke="#9aa4c7" stroke-width="1.4"/>`;
+  const lx=(R-18)*Math.sin(a),ly=-(R-18)*Math.cos(a);
+  s+=`<text x="${lx}" y="${ly}" fill="#e8ecf8" font-size="13" text-anchor="middle" dominant-baseline="middle">${h}</text>`;
+ }
+ s+=`<polygon points="0,0 -14,0 0,${lat>=0?-60:60}" fill="#f5b942" opacity="0.9"/>`;
+ s+=`<text x="0" y="${R+18}" fill="#9aa4c7" font-size="12" text-anchor="middle">gnomon rises ${Math.abs(lat).toFixed(2)}&deg; from the plate, pointing ${lat>=0?'north':'south'}</text>`;
+ svg.innerHTML=s;
+ $('svgNote').textContent='Noon line in gold. The gnomon triangle is drawn to suggest the style angle, not to scale.';
+}
+if(!$('date').value){const d=new Date();$('date').value=d.toISOString().slice(0,10);}
+document.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',run));
+run();
+</script>
+</body>
+</html>
